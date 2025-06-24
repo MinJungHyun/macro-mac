@@ -108,7 +108,7 @@ def search_move(task, screenshots, mouse_pos=None):
                     debug_img = screen_img.copy()
                     cv2.rectangle(debug_img, top_left, (top_left[0] + resized_w, top_left[1] + resized_h), (0, 255, 0), 2)
                     cv2.putText(debug_img, f'({absolute_x}, {absolute_y})', (top_left[0], top_left[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                    cv2.imwrite(f'debug_matched_location_{monitor_id}_{timestamp}.png', debug_img)
+                    cv2.imwrite(f'data/debug/debug_matched_location_{monitor_id}_{timestamp}.png', debug_img)
 
                     # 해당 모니터에서만 캡처하도록 수정
                     with mss.mss() as sct:
@@ -137,7 +137,7 @@ def search_move(task, screenshots, mouse_pos=None):
                         
                         screenshot = sct.grab(region)
                         img = Image.frombytes('RGB', screenshot.size, screenshot.rgb)
-                        capture_filename = f'found_image_{monitor_id}_{timestamp}.png'
+                        capture_filename = f'data/found/found_image_{monitor_id}_{timestamp}.png'
                         img.save(capture_filename)
                         print(f'📸 발견된 위치 캡처 저장: {capture_filename} (모니터 {monitor_id})')
 

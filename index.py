@@ -22,31 +22,36 @@ RETINA_SCALE = 2 if 'Retina' in os.popen('system_profiler SPDisplaysDataType').r
 
 
 def test_mouse_control():
+    debug = False
     """마우스 제어가 제대로 작동하는지 테스트"""
-    print('🧪 마우스 제어 테스트 시작...')
+    if( debug ):
+        print('🧪 마우스 제어 테스트 시작...')
     try:
         # 현재 마우스 위치 확인
         current_pos = pyautogui.position()
-        print(f'현재 마우스 위치: {current_pos}')
+        if( debug ):
+            print(f'현재 마우스 위치: {current_pos}')
         
         # 상대적으로 안전한 위치로 이동 테스트 (현재 위치에서 조금만 이동)
         test_x = current_pos.x + 10
         test_y = current_pos.y + 10
         
-        print(f'테스트 위치로 이동: ({test_x}, {test_y})')
+        if( debug ):
+            print(f'테스트 위치로 이동: ({test_x}, {test_y})')
         pyautogui.moveTo(test_x, test_y, duration=1)
         time.sleep(0.5)
         
         # 이동 후 위치 확인
         new_pos = pyautogui.position()
-        print(f'이동 후 마우스 위치: {new_pos}')
+
+        if( debug ):
+            print(f'이동 후 마우스 위치: {new_pos}')
         
         if new_pos.x == test_x and new_pos.y == test_y:
             print('✅ 마우스 제어 정상 작동')
             return True
         else:
-            print('❌ 마우스 제어 실패 - 접근성(손쉬운 사용) 권한을 확인하세요')
-            print('$ which python > Cmd + Shift + G')
+            print('❌ 마우스 제어 실패 - 접근성(손쉬운 사용) 권한을 확인하세요') 
             return False
             
     except Exception as e:
@@ -86,10 +91,6 @@ def main():
             if task.get('action') == 'search_move': 
                 success, pos = search_move(task, screenshots, mouse_pos)
                 if success:
-                    # 좌표 유효성 검증
-                    if pos['y'] < 0:
-                        print(f'⚠️ y좌표가 음수입니다 ({pos["y"]}). 화면 영역을 벗어날 수 있습니다.')
-                    
                     mouse_pos = { 'x': pos['x'], 'y': pos['y'] }
                     print(f'작업 완료: {task["image_path"]} on monitor {pos["monitor_id"]}, 캡처 파일: {pos.get("capture_file", "없음")}')
                     
