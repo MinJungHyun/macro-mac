@@ -1,7 +1,7 @@
 [
 	{
 		"action": "search",
-		"image_path": "images/search_target_2.png",
+		"image_path": "images/search_target_gpt_app.png",
 		"confidence": 0.98,
 		"capture_size": [
 			100,
@@ -50,7 +50,7 @@
 	},
 	{
 		"action": "sleep",
-		"duration": 10
+		"duration": 30
 	},
 	{
 		"action": "clipboard"
