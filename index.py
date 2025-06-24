@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime
+import time
 
 import cv2
 import mss
@@ -20,9 +21,47 @@ pyautogui.PAUSE = 0.1
 RETINA_SCALE = 2 if 'Retina' in os.popen('system_profiler SPDisplaysDataType').read() else 1
 
 
+def test_mouse_control():
+    """마우스 제어가 제대로 작동하는지 테스트"""
+    print('🧪 마우스 제어 테스트 시작...')
+    try:
+        # 현재 마우스 위치 확인
+        current_pos = pyautogui.position()
+        print(f'현재 마우스 위치: {current_pos}')
+        
+        # 상대적으로 안전한 위치로 이동 테스트 (현재 위치에서 조금만 이동)
+        test_x = current_pos.x + 10
+        test_y = current_pos.y + 10
+        
+        print(f'테스트 위치로 이동: ({test_x}, {test_y})')
+        pyautogui.moveTo(test_x, test_y, duration=1)
+        time.sleep(0.5)
+        
+        # 이동 후 위치 확인
+        new_pos = pyautogui.position()
+        print(f'이동 후 마우스 위치: {new_pos}')
+        
+        if new_pos.x == test_x and new_pos.y == test_y:
+            print('✅ 마우스 제어 정상 작동')
+            return True
+        else:
+            print('❌ 마우스 제어 실패 - 접근성(손쉬운 사용) 권한을 확인하세요')
+            print('$ which python > Cmd + Shift + G')
+            return False
+            
+    except Exception as e:
+        print(f'❌ 마우스 제어 오류: {e}')
+        return False
 
 
 def main():
+    # 먼저 마우스 제어 테스트
+    if not test_mouse_control():
+        print('⚠️ 마우스 제어가 작동하지 않습니다.')
+        print('시스템 환경설정 > 보안 및 개인 정보 보호 > 개인 정보 보호 > 접근성에서')
+        print('터미널 또는 Python을 허용해주세요.')
+        return
+    
     try:
         screenshots = capture_screenshots()
         if not screenshots:
@@ -47,13 +86,25 @@ def main():
             if task.get('action') == 'search_move': 
                 success, pos = search_move(task, screenshots, mouse_pos)
                 if success:
+                    # 좌표 유효성 검증
+                    if pos['y'] < 0:
+                        print(f'⚠️ y좌표가 음수입니다 ({pos["y"]}). 화면 영역을 벗어날 수 있습니다.')
+                    
                     mouse_pos = { 'x': pos['x'], 'y': pos['y'] }
                     print(f'작업 완료: {task["image_path"]} on monitor {pos["monitor_id"]}, 캡처 파일: {pos.get("capture_file", "없음")}')
+                    
+                    # 추가 검증: 실제 마우스 위치 확인
+                    actual_pos = pyautogui.position()
+                    print(f'🔍 실제 마우스 위치: {actual_pos}')
                 else:
                     print(f'작업 실패: {task["image_path"]}')
                     continue
             else:
-                action(task, mouse_pos)
+                action_result = action(task, mouse_pos)
+                if action_result:
+                    # 액션 후 실제 마우스 위치 확인
+                    actual_pos = pyautogui.position()
+                    print(f'🔍 액션 후 실제 마우스 위치: {actual_pos}')
             print(f'==============================')
               
     except Exception as e:

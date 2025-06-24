@@ -1,12 +1,16 @@
 [
   {
     "action": "search_move",
-    "image_path": "images/form_target.png",
+    "image_path": "images/search_target_1.png",
     "offset": {
       "x": 0,
-      "y": 0
+      "y": -30
     },
-    "confidence": 0.98
+    "confidence": 0.98,
+    "capture_size": [
+      100,
+      100
+    ]
   },
   {
     "action": "click"

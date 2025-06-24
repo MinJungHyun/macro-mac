@@ -21,9 +21,11 @@ def capture_screenshots():
     save_path = 'data/screenshot'
     screenshots = []
     with mss.mss() as sct:
-        monitors = sct.monitors[1:]
+        monitors = sct.monitors[1:]  # 첫 번째는 전체 화면이므로 제외
+        print(f'🖥 감지된 모니터 수: {len(monitors)}')
         for idx, monitor in enumerate(monitors):
             try:
+                print(f'모니터 {idx}: {monitor}')
                 screenshot = sct.grab(monitor)
                 img = Image.frombytes('RGB', screenshot.size, screenshot.rgb)
                 img_np = np.array(img)
@@ -36,8 +38,11 @@ def capture_screenshots():
                     'image': img,
                     'cv_image': img_cv,
                     'offset_x': monitor['left'],
-                    'offset_y': monitor['top']
+                    'offset_y': monitor['top'],
+                    'width': monitor['width'],
+                    'height': monitor['height']
                 })
+                print(f'✅ 모니터 {idx} 캡처 완료: {monitor["width"]}x{monitor["height"]} at ({monitor["left"]}, {monitor["top"]})')
             except Exception as e:
                 print(f'모니터 {idx} 캡처 실패: {e}')
     return screenshots
