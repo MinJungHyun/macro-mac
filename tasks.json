@@ -1,11 +1,7 @@
 [
   {
-    "action": "search_move",
+    "action": "search",
     "image_path": "images/search_target_1.png",
-    "offset": {
-      "x": 0,
-      "y": -30
-    },
     "confidence": 0.98,
     "capture_size": [
       100,
@@ -13,6 +9,36 @@
     ]
   },
   {
+    "action": "move",
+    "offset": {
+      "x": 0,
+      "y": -40
+    }
+  },
+  {
     "action": "click"
+  },
+  {
+    "action": "paste"
+  },
+  {
+    "action": "click"
+  },
+  {
+    "action": "hotkey",
+    "key_combination": [
+      "command",
+      "a"
+    ]
+  },
+  {
+    "action": "hotkey",
+    "key_combination": [
+      "command",
+      "c"
+    ]
+  },
+  {
+    "action": "clipboard"
   }
 ]

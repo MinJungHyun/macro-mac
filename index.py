@@ -9,7 +9,7 @@ import numpy as np
 import pyautogui
 from PIL import Image
 
-from lib.task.search import action, search_move
+from lib.task.search import action, search
 # lib 모듈에서 필요한 함수들 import
 from lib.task.task_runner import capture_screenshots, load_tasks
 
@@ -61,11 +61,10 @@ def test_mouse_control():
 
 def main():
     # 먼저 마우스 제어 테스트
-    if not test_mouse_control():
-        print('⚠️ 마우스 제어가 작동하지 않습니다.')
-        print('시스템 환경설정 > 보안 및 개인 정보 보호 > 개인 정보 보호 > 접근성에서')
-        print('터미널 또는 Python을 허용해주세요.')
-        return
+    # if not test_mouse_control():
+    #     print('⚠️ 마우스 제어가 작동하지 않습니다.')
+    #     print('터미널 또는 Python을 허용해주세요.')
+    #     return
     
     try:
         screenshots = capture_screenshots()
@@ -82,30 +81,29 @@ def main():
         print(f'==============================')
         print(f'초기 마우스 위치: {mouse_pos}')
         print(f'==============================')
-        print(' 작업 시작')
         
         index = 1
         for task in tasks:
             print(f'🔄 작업 {index} 시작: {task}')
             index += 1
-            if task.get('action') == 'search_move': 
-                success, pos = search_move(task, screenshots, mouse_pos)
+            if task.get('action') == 'search': 
+                success, pos = search(task, screenshots, mouse_pos)
                 if success:
                     mouse_pos = { 'x': pos['x'], 'y': pos['y'] }
                     print(f'작업 완료: {task["image_path"]} on monitor {pos["monitor_id"]}, 캡처 파일: {pos.get("capture_file", "없음")}')
-                    
-                    # 추가 검증: 실제 마우스 위치 확인
-                    actual_pos = pyautogui.position()
-                    print(f'🔍 실제 마우스 위치: {actual_pos}')
+                     
                 else:
                     print(f'작업 실패: {task["image_path"]}')
                     continue
             else:
-                action_result = action(task, mouse_pos)
-                if action_result:
+                success, pos = action(task, mouse_pos)
+                if success:
                     # 액션 후 실제 마우스 위치 확인
+                    if pos['x'] and pos['y']:
+                        mouse_pos = { 'x': pos['x'], 'y': pos['y'] }
+
                     actual_pos = pyautogui.position()
-                    print(f'🔍 액션 후 실제 마우스 위치: {actual_pos}')
+                    print(f'🔍 액션후 마우스 위치: {actual_pos.x}, {actual_pos.y}')
             print(f'==============================')
               
     except Exception as e:

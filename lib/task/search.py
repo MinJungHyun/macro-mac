@@ -1,7 +1,8 @@
 import json
 import os
 from datetime import datetime
-
+import time
+import pyperclip
 import cv2
 import mss
 import pyautogui
@@ -10,49 +11,58 @@ from PIL import Image
 
 def action(task, mouse_pos=None):
      
-    action = task.get('action', 'move')
-    key = task.get('key', '')
-    text = task.get('text', '')
+    time.sleep(0.2)
+    print(f'🔍 현재의 마우스 위치: {mouse_pos["x"]}, {mouse_pos["y"]}')
+    action = task.get('action', 'move')  
     
-    
-    # action 출력을 스크린샷 for문 이전으로 이동
-    print(f'🎯 실행할 액션: {action}') 
-    
-    if mouse_pos is None:
-        print('❌ mouse_pos가 None입니다!')
-        return False
-        
-    print(f'🖱 현재 마우스 위치: {mouse_pos}')
-    
-    if action == 'click': 
-        print(f'🖱 클릭 위치: {mouse_pos}')
+    if action == 'click':  
         # 클릭 전에 딜레이 추가
-        import time
-        time.sleep(0.2)
-        pyautogui.click(mouse_pos['x'], mouse_pos['y']) 
-        print('✅ 클릭 완료')
-        return True
+        pyautogui.click(mouse_pos['x'], mouse_pos['y'])  
+        return True, mouse_pos
     
-    elif action == 'type':
-        print('⌨ 텍스트 입력 실행...')
+    elif action == 'move':  
+        offset = task.get('offset')
+        pyautogui.moveRel(offset['x'], offset['y']) 
+        return True, {'x': mouse_pos['x'] + offset['x'], 'y': mouse_pos['y'] + offset['y']}
+    
+    elif action == 'text': 
+        text = task.get('text', '')
         pyautogui.click(mouse_pos['x'], mouse_pos['y']) 
         pyautogui.typewrite(text)
-        return True
+        return True, mouse_pos
     
-    elif action == 'paste':
-        print('📋 붙여넣기 실행...')
+    elif action == 'paste': 
         pyautogui.click(mouse_pos['x'], mouse_pos['y']) 
         pyautogui.hotkey('command', 'v')
-        return True
+        return True, mouse_pos
+
+    elif action == 'hotkey': 
+        key_combination = task.get('key_combination', [])
+        pyautogui.click(mouse_pos['x'], mouse_pos['y']) 
+        pyautogui.hotkey(*key_combination)
+        return True, mouse_pos
     
-    elif action == 'keypress':
-        print('🔑 키 입력 실행...')
+    
+    elif action == 'keypress': 
+        key = task.get('key')
         pyautogui.click(mouse_pos['x'], mouse_pos['y']) 
         pyautogui.press(key)
-        return True    
+        return True, mouse_pos
     
-    return False
-def search_move(task, screenshots, mouse_pos=None):
+    
+    elif action == 'clipboard':
+        ## 클립보드 데이터를 가져온다
+        clipboard_data = pyperclip.paste()
+        print(f'📋 클립보드 데이터: {clipboard_data}')
+        
+        return True, mouse_pos
+    
+    else:
+        print(f'❌ 알 수 없는 액션: {action}')
+        return False
+
+     
+def search(task, screenshots, mouse_pos=None):
     image_path = task.get('image_path')
     confidence = task.get('confidence', 0.98)
     capture_size = task.get('capture_size', (200, 200))
