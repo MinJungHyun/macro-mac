@@ -2,20 +2,16 @@
 	{
 		"action": "search",
 		"image_path": "images/search_target_gpt_app.png",
-		"confidence": 0.98,
-		"capture_size": [
-			100,
-			100
-		]
+		"confidence": 0.98
 	},
-	{
+  {
 		"action": "move",
 		"offset": {
 			"x": 0,
 			"y": -40
 		}
 	},
-	{
+  {
 		"action": "click"
 	},
 	{
@@ -48,11 +44,41 @@
 		"action": "keypress",
 		"key": "enter"
 	},
-	{
+  {
 		"action": "sleep",
-		"duration": 30
+		"duration": 20
+	},
+  {
+    "action": "screenshots"
+  },
+	{
+		"action": "search",
+		"image_path": "images/search_copy_block_gpt_app.png",
+		"confidence": 0.98,
+    "find_mode": "bottom"
+	},
+  {
+		"action": "move",
+		"offset": {
+			"x": -45,
+			"y": 0
+		}
+	},
+  {
+		"action": "sleep",
+		"duration": 0.5
+	},
+  {
+		"action": "click"
+	},
+  {
+		"action": "sleep",
+		"duration": 1
 	},
 	{
 		"action": "clipboard"
+	},
+	{
+		"action": "break"
 	}
 ]

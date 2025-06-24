@@ -12,7 +12,7 @@ from PIL import Image
 from lib.task.search import action, search
 # lib 모듈에서 필요한 함수들 import
 from lib.task.task_runner import capture_screenshots, load_tasks
-from lib.task.outmall_review import load_out_mall_reviews
+from lib.task.outmall_review import load_out_mall_reviews, update_out_mall_review
 import pyperclip
 
 # PyAutoGUI 설정
@@ -72,9 +72,6 @@ def main():
     # print(reviews)
     
     for review in reviews:
-        print(f"리뷰 작성일: {review['created_at']}, 상품명: {review['product_name']}, 평점: {review['rating']}, 사용자명: {review['user_name']}")
-        print(f"리뷰 내용: {review['contents']}\n")
-        
         review_text = (
             f"작성일: {review['created_at']}\n"
             f"상품이름: {review['product_name']}\n"
@@ -102,10 +99,19 @@ def main():
             print(f'==============================')
             
             index = 1
+            review_answer = None
             for task in tasks:
                 print(f'🔄 작업 {index} 시작: {task}')
                 index += 1
-                if task.get('action') == 'search': 
+                if( task.get('action') == 'break' ):
+                    print('🔴 작업 중단')
+                    break
+                elif( task.get('action') == 'screenshots' ):
+                    screenshots = capture_screenshots()
+                    if not screenshots:
+                        print('❌ 스크린 캡처 실패')
+                        return
+                elif task.get('action') == 'search': 
                     success, pos = search(task, screenshots, mouse_pos)
                     if success:
                         mouse_pos = { 'x': pos['x'], 'y': pos['y'] }
@@ -116,6 +122,8 @@ def main():
                         continue
                 else:
                     success, pos = action(task, mouse_pos)
+                    if task['action'] == 'clipboard':
+                        review_answer = pos.get('clipboard_data', None)
                     if success:
                         # 액션 후 실제 마우스 위치 확인
                         if pos['x'] and pos['y']:
@@ -124,7 +132,13 @@ def main():
                         actual_pos = pyautogui.position()
                         print(f'🔍 액션후 마우스 위치: {actual_pos.x}, {actual_pos.y}')
                 print(f'==============================')
-                
+        
+            print('clipboard에 복사된 리뷰 내용:')
+            print(review_answer)
+            print('==============================')
+            if review_answer:
+                update_out_mall_review(review['id'], review_answer)
+
         except Exception as e:
             print(f'실행 중 오류: {e}')
 

@@ -51,7 +51,7 @@ def action(task, mouse_pos=None):
         clipboard_data = pyperclip.paste()
         print(f'📋 클립보드 데이터: {clipboard_data}')
         
-        return True, mouse_pos
+        return True, {'x': mouse_pos['x'], 'y': mouse_pos['y'], 'clipboard_data': clipboard_data}
     elif action == 'sleep':
         duration = task.get('duration', 1)
         print(f'⏳ {duration}초 대기 중...')
@@ -63,103 +63,126 @@ def action(task, mouse_pos=None):
 
      
 def search(task, screenshots, mouse_pos=None):
-    image_path = task.get('image_path')
+    image_paths = task.get('image_paths') or [task.get('image_path')]
     confidence = task.get('confidence', 0.98)
     capture_size = task.get('capture_size', (200, 200))
+    find_mode = task.get('find_mode', 'first')  # 'first', 'top', 'bottom', 'left', 'right'
+    print(f'🔍 이미지 검색 시작: {image_paths}, 유사도 기준: {confidence}, 캡처 크기: {capture_size}, 찾기 모드: {find_mode}')
 
-    if not os.path.exists(image_path):
-        print(f'❌ 이미지 파일 없음: {image_path}')
+    found_matches = []
+
+    for image_path in image_paths:
+        if not os.path.exists(image_path):
+            print(f'❌ 이미지 파일 없음: {image_path}')
+            continue
+
+        target_img = cv2.imread(image_path)
+        if target_img is None:
+            print(f'❌ 타겟 이미지 로드 실패: {image_path}')
+            continue
+
+        target_height, target_width = target_img.shape[:2]
+        print(f'🔍 타겟 이미지: {image_path}, 크기: {target_width}x{target_height}, 유사도 기준: {confidence}')
+
+        scales = [1.0]
+        for screen in screenshots:
+            monitor_id = screen['id']
+            offset_x = screen['offset_x']
+            offset_y = screen['offset_y']
+            screen_img = screen['cv_image']
+
+            print(f'🔍 모니터 {monitor_id}에서 검색 중... (오프셋: {offset_x}, {offset_y})')
+
+            try:
+                for scale in scales:
+                    resized = cv2.resize(target_img, (0, 0), fx=scale, fy=scale)
+                    resized_h, resized_w = resized.shape[:2]
+
+                    result = cv2.matchTemplate(screen_img, resized, cv2.TM_CCOEFF_NORMED)
+                    loc = zip(*((result >= confidence).nonzero()[::-1]))
+
+                    for pt in loc:
+                        top_left = pt
+                        center_x = top_left[0] + (resized_w // 2)
+                        center_y = top_left[1] + (resized_h // 2)
+                        absolute_x = center_x + offset_x
+                        absolute_y = center_y + offset_y
+
+                        found_matches.append({
+                            'monitor_id': monitor_id,
+                            'offset_x': offset_x,
+                            'offset_y': offset_y,
+                            'center_x': center_x,
+                            'center_y': center_y,
+                            'absolute_x': absolute_x,
+                            'absolute_y': absolute_y,
+                            'image_path': image_path,
+                            'resized_w': resized_w,
+                            'resized_h': resized_h,
+                            'top_left': top_left,
+                            'screen_img': screen_img
+                        })
+            except Exception as e:
+                print(f'❌ 매칭 실패 (모니터 {monitor_id}): {e}')
+
+    if not found_matches:
+        print(f'❌ 이미지 못 찾음: {image_paths}')
         return False, None
 
-    target_img = cv2.imread(image_path)
-    if target_img is None:
-        print(f'❌ 타겟 이미지 로드 실패: {image_path}')
-        return False, None
+    # 찾은 위치 중에서 조건에 따라 선택
+    if find_mode == 'top':
+        found_matches.sort(key=lambda m: m['absolute_y'])
+    elif find_mode == 'bottom':
+        found_matches.sort(key=lambda m: m['absolute_y'], reverse=True)
+    elif find_mode == 'left':
+        found_matches.sort(key=lambda m: m['absolute_x'])
+    elif find_mode == 'right':
+        found_matches.sort(key=lambda m: m['absolute_x'], reverse=True)
+    # 'first'는 정렬하지 않음
+    match = found_matches[0]
 
-    target_height, target_width = target_img.shape[:2]
-    print(f'🔍 타겟 이미지: {image_path}, 크기: {target_width}x{target_height}, 유사도 기준: {confidence}')
+    monitor_id = match['monitor_id']
+    offset_x = match['offset_x']
+    offset_y = match['offset_y']
+    center_x = match['center_x']
+    center_y = match['center_y']
+    absolute_x = match['absolute_x']
+    absolute_y = match['absolute_y']
+    image_path = match['image_path']
+    resized_w = match['resized_w']
+    resized_h = match['resized_h']
+    top_left = match['top_left']
+    screen_img = match['screen_img']
 
-    scales = [1.0]
-    for screen in screenshots:
-        # 모든 모니터에서 검색하도록 변경 (또는 특정 모니터 지정)
-        # if screen['id'] != 1:  # 이 조건을 제거하거나 수정
-        #     continue
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    debug_img = screen_img.copy()
+    cv2.rectangle(debug_img, top_left, (top_left[0] + resized_w, top_left[1] + resized_h), (0, 255, 0), 2)
+    cv2.putText(debug_img, f'({absolute_x}, {absolute_y})', (top_left[0], top_left[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+    # cv2.imwrite(f'data/debug/debug_matched_location_{monitor_id}_{timestamp}.png', debug_img)
 
-        monitor_id = screen['id']
-        offset_x = screen['offset_x']
-        offset_y = screen['offset_y']
-        screen_img = screen['cv_image']  # 원본 그대로 사용
-        
-        print(f'🔍 모니터 {monitor_id}에서 검색 중... (오프셋: {offset_x}, {offset_y})')
+    with mss.mss() as sct:
+        capture_width, capture_height = capture_size
+        monitor_info = sct.monitors[monitor_id + 1]
+        capture_left = center_x - capture_width // 2
+        capture_top = center_y - capture_height // 2
+        capture_left = max(0, min(capture_left, monitor_info['width'] - capture_width))
+        capture_top = max(0, min(capture_top, monitor_info['height'] - capture_height))
+        region = {
+            'left': monitor_info['left'] + capture_left,
+            'top': monitor_info['top'] + capture_top,
+            'width': capture_width,
+            'height': capture_height
+        }
+        print(f'   - 캡처 영역: {region}')
+        screenshot = sct.grab(region)
+        img = Image.frombytes('RGB', screenshot.size, screenshot.rgb)
+        capture_filename = f'data/found/found_image_{monitor_id}_{timestamp}.png'
+        # img.save(capture_filename)
+        print(f'📸 발견된 위치 캡처 저장: {capture_filename} (모니터 {monitor_id})')
 
-        try:
-            for scale in scales:
-                resized = cv2.resize(target_img, (0, 0), fx=scale, fy=scale)
-                resized_h, resized_w = resized.shape[:2]
+    print(f'🖱 마우스 이동: {absolute_x}, {absolute_y} (모니터 {monitor_id})')
+    pyautogui.moveTo(absolute_x, absolute_y)
+    mouse_pos = {'x': absolute_x, 'y': absolute_y}
+    print(f'📍 mouse_pos 업데이트: {mouse_pos}')
 
-                result = cv2.matchTemplate(screen_img, resized, cv2.TM_CCOEFF_NORMED)
-                min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
-
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-
-                if max_val >= confidence:
-                    top_left = max_loc
-                    center_x = top_left[0] + (resized_w // 2)
-                    center_y = top_left[1] + (resized_h // 2)
-                    absolute_x = center_x + offset_x
-                    absolute_y = center_y + offset_y
-
-                    # 디버그 정보 출력
-                    print(f'🔍 매칭 결과: 모니터 {monitor_id}')
-                    print(f'   - 모니터 오프셋: ({offset_x}, {offset_y})')
-                    print(f'   - 모니터 내 상대좌표: ({center_x}, {center_y})')
-                    print(f'   - 계산된 절대좌표: ({absolute_x}, {absolute_y})')
-
-                    debug_img = screen_img.copy()
-                    cv2.rectangle(debug_img, top_left, (top_left[0] + resized_w, top_left[1] + resized_h), (0, 255, 0), 2)
-                    cv2.putText(debug_img, f'({absolute_x}, {absolute_y})', (top_left[0], top_left[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                    # cv2.imwrite(f'data/debug/debug_matched_location_{monitor_id}_{timestamp}.png', debug_img)
-
-                    # 해당 모니터에서만 캡처하도록 수정
-                    with mss.mss() as sct:
-                        capture_width, capture_height = capture_size
-                        
-                        # 해당 모니터 정보 가져오기
-                        monitor_info = sct.monitors[monitor_id + 1]  # monitors[0]은 전체화면이므로 +1
-                        
-                        # 모니터 내에서의 캡처 영역 계산
-                        capture_left = center_x - capture_width // 2
-                        capture_top = center_y - capture_height // 2
-                        
-                        # 모니터 경계 내로 제한
-                        capture_left = max(0, min(capture_left, monitor_info['width'] - capture_width))
-                        capture_top = max(0, min(capture_top, monitor_info['height'] - capture_height))
-                        
-                        # 전체 화면 좌표계로 변환
-                        region = {
-                            'left': monitor_info['left'] + capture_left,
-                            'top': monitor_info['top'] + capture_top,
-                            'width': capture_width,
-                            'height': capture_height
-                        }
-                        
-                        print(f'   - 캡처 영역: {region}')
-                        
-                        screenshot = sct.grab(region)
-                        img = Image.frombytes('RGB', screenshot.size, screenshot.rgb)
-                        capture_filename = f'data/found/found_image_{monitor_id}_{timestamp}.png'
-                        # img.save(capture_filename)
-                        print(f'📸 발견된 위치 캡처 저장: {capture_filename} (모니터 {monitor_id})')
-
-                    print(f'🖱 마우스 이동: {absolute_x}, {absolute_y} (모니터 {monitor_id})')
-                    pyautogui.moveTo(absolute_x, absolute_y)
-                    
-                    # mouse_pos 업데이트
-                    mouse_pos = {'x': absolute_x, 'y': absolute_y}
-                    print(f'📍 mouse_pos 업데이트: {mouse_pos}')
-                    
-                    return True, {'x': absolute_x, 'y': absolute_y, 'monitor_id': monitor_id, 'capture_file': capture_filename}
-        except Exception as e:
-            print(f'❌ 매칭 실패 (모니터 {monitor_id}): {e}')
-    print(f'❌ 이미지 못 찾음: {image_path}')
-    return False, None
+    return True, {'x': absolute_x, 'y': absolute_y, 'monitor_id': monitor_id, 'capture_file': capture_filename}

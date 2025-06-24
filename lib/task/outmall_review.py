@@ -49,18 +49,39 @@ class DatabaseConnection:
             print(f"쿼리 실행 중 오류 발생: {e}")
             return None
 
+def update_out_mall_review(review_id: int, answer: str):
+    db = DatabaseConnection()
+    try:
+        sql = """UPDATE ecommerce_data.out_mall_review
+SET answer = '{answer}', ai_answer_fl = 'Y'
+WHERE id = {review_id};"""
+
+        sql_with_params = sql.format(answer=answer, review_id=review_id)
+        print(f"쿼리 실행: {sql_with_params}")
+        conn = db.get_connection()
+        with conn.cursor() as cursor:
+            cursor.execute(sql_with_params)
+        conn.commit()
+        print("쿼리 실행 성공: 리뷰 업데이트 완료")
+    except Exception as e:
+        print(f"처리 중 오류 발생: {e}")
+        
+
 def load_out_mall_reviews(keyword: str):
     db = DatabaseConnection()
     try:
         sql = """
 SELECT
+    id,
+    review_uid,
 	created_at,
     product_name,
     rating,
     user_name,
     contents
 FROM ecommerce_data.out_mall_review
-WHERE confirm_fl = 'N' AND product_name LIKE '%{keyword}%';
+WHERE confirm_fl = 'N' AND ai_answer_fl = 'N' AND product_name LIKE '%{keyword}%'
+ORDER BY id DESC;
         """
         print(f"쿼리 실행: {sql.format(keyword=keyword)}")
         results = db.execute_query(sql.format(keyword=keyword))
