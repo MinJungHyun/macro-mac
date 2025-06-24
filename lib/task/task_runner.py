@@ -30,8 +30,8 @@ def capture_screenshots():
                 img_np = np.array(img)
                 img_cv = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                filename = f'{save_path}/screenshot_monitor_{idx}_{timestamp}.png'
-                cv2.imwrite(filename, img_cv)
+                # filename = f'{save_path}/screenshot_monitor_{idx}_{timestamp}.png'
+                # cv2.imwrite(filename, img_cv)
                 screenshots.append({
                     'id': idx,
                     'image': img,

@@ -1,44 +1,58 @@
 [
-  {
-    "action": "search",
-    "image_path": "images/search_target_1.png",
-    "confidence": 0.98,
-    "capture_size": [
-      100,
-      100
-    ]
-  },
-  {
-    "action": "move",
-    "offset": {
-      "x": 0,
-      "y": -40
-    }
-  },
-  {
-    "action": "click"
-  },
-  {
-    "action": "paste"
-  },
-  {
-    "action": "click"
-  },
-  {
-    "action": "hotkey",
-    "key_combination": [
-      "command",
-      "a"
-    ]
-  },
-  {
-    "action": "hotkey",
-    "key_combination": [
-      "command",
-      "c"
-    ]
-  },
-  {
-    "action": "clipboard"
-  }
+	{
+		"action": "search",
+		"image_path": "images/search_target_2.png",
+		"confidence": 0.98,
+		"capture_size": [
+			100,
+			100
+		]
+	},
+	{
+		"action": "move",
+		"offset": {
+			"x": 0,
+			"y": -40
+		}
+	},
+	{
+		"action": "click"
+	},
+	{
+		"action": "hotkey",
+		"key_combination": [
+			"command",
+			"a"
+		]
+	},
+	{
+		"action": "sleep",
+		"duration": 0.5
+	},
+	{
+		"action": "keypress",
+		"key": "backspace"
+	},
+	{
+		"action": "sleep",
+		"duration": 0.5
+	},
+	{
+		"action": "paste"
+	},
+	{
+		"action": "sleep",
+		"duration": 0.5
+	},
+	{
+		"action": "keypress",
+		"key": "enter"
+	},
+	{
+		"action": "sleep",
+		"duration": 10
+	},
+	{
+		"action": "clipboard"
+	}
 ]

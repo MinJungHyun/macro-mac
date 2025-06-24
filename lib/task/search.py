@@ -11,7 +11,7 @@ from PIL import Image
 
 def action(task, mouse_pos=None):
      
-    time.sleep(0.2)
+    time.sleep(0.02)
     print(f'🔍 현재의 마우스 위치: {mouse_pos["x"]}, {mouse_pos["y"]}')
     action = task.get('action', 'move')  
     
@@ -27,25 +27,21 @@ def action(task, mouse_pos=None):
     
     elif action == 'text': 
         text = task.get('text', '')
-        pyautogui.click(mouse_pos['x'], mouse_pos['y']) 
         pyautogui.typewrite(text)
         return True, mouse_pos
     
     elif action == 'paste': 
-        pyautogui.click(mouse_pos['x'], mouse_pos['y']) 
         pyautogui.hotkey('command', 'v')
         return True, mouse_pos
 
     elif action == 'hotkey': 
         key_combination = task.get('key_combination', [])
-        pyautogui.click(mouse_pos['x'], mouse_pos['y']) 
         pyautogui.hotkey(*key_combination)
         return True, mouse_pos
     
     
     elif action == 'keypress': 
         key = task.get('key')
-        pyautogui.click(mouse_pos['x'], mouse_pos['y']) 
         pyautogui.press(key)
         return True, mouse_pos
     
@@ -56,7 +52,11 @@ def action(task, mouse_pos=None):
         print(f'📋 클립보드 데이터: {clipboard_data}')
         
         return True, mouse_pos
-    
+    elif action == 'sleep':
+        duration = task.get('duration', 1)
+        print(f'⏳ {duration}초 대기 중...')
+        time.sleep(duration)
+        return True, mouse_pos
     else:
         print(f'❌ 알 수 없는 액션: {action}')
         return False
@@ -118,7 +118,7 @@ def search(task, screenshots, mouse_pos=None):
                     debug_img = screen_img.copy()
                     cv2.rectangle(debug_img, top_left, (top_left[0] + resized_w, top_left[1] + resized_h), (0, 255, 0), 2)
                     cv2.putText(debug_img, f'({absolute_x}, {absolute_y})', (top_left[0], top_left[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                    cv2.imwrite(f'data/debug/debug_matched_location_{monitor_id}_{timestamp}.png', debug_img)
+                    # cv2.imwrite(f'data/debug/debug_matched_location_{monitor_id}_{timestamp}.png', debug_img)
 
                     # 해당 모니터에서만 캡처하도록 수정
                     with mss.mss() as sct:
@@ -148,7 +148,7 @@ def search(task, screenshots, mouse_pos=None):
                         screenshot = sct.grab(region)
                         img = Image.frombytes('RGB', screenshot.size, screenshot.rgb)
                         capture_filename = f'data/found/found_image_{monitor_id}_{timestamp}.png'
-                        img.save(capture_filename)
+                        # img.save(capture_filename)
                         print(f'📸 발견된 위치 캡처 저장: {capture_filename} (모니터 {monitor_id})')
 
                     print(f'🖱 마우스 이동: {absolute_x}, {absolute_y} (모니터 {monitor_id})')
