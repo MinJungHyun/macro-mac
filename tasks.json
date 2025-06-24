@@ -1,0 +1,14 @@
+[
+  {
+    "action": "search_move",
+    "image_path": "images/form_target.png",
+    "offset": {
+      "x": 0,
+      "y": 0
+    },
+    "confidence": 0.98
+  },
+  {
+    "action": "click"
+  }
+]
