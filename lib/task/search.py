@@ -7,12 +7,15 @@ import cv2
 import mss
 import pyautogui
 from PIL import Image
+from lib.task.task_runner import capture_screenshots
 
+debug_log = False
 
 def action(task, mouse_pos=None):
      
     time.sleep(0.02)
-    print(f'🔍 현재의 마우스 위치: {mouse_pos["x"]}, {mouse_pos["y"]}')
+    if debug_log == True:
+        print(f'🔍 현재의 마우스 위치: {mouse_pos["x"]}, {mouse_pos["y"]}')
     action = task.get('action', 'move')  
     
     if action == 'click':  
@@ -49,40 +52,90 @@ def action(task, mouse_pos=None):
     elif action == 'clipboard':
         ## 클립보드 데이터를 가져온다
         clipboard_data = pyperclip.paste()
-        print(f'📋 클립보드 데이터: {clipboard_data}')
+        if debug_log == True:
+            print(f'📋 클립보드 데이터: {clipboard_data}')
         
         return True, {'x': mouse_pos['x'], 'y': mouse_pos['y'], 'clipboard_data': clipboard_data}
     elif action == 'sleep':
         duration = task.get('duration', 1)
-        print(f'⏳ {duration}초 대기 중...')
+        if debug_log == True:
+            print(f'⏳ {duration}초 대기 중...')
         time.sleep(duration)
         return True, mouse_pos
     else:
-        print(f'❌ 알 수 없는 액션: {action}')
+        if debug_log == True:
+            print(f'❌ 알 수 없는 액션: {action}')
         return False
 
+def waiting_capture_screenshot_search(task, current_mouse_pos, max_wait_time=20, interval=1.0):
+    """
+    스크린샷을 주기적으로 캡처하여 원하는 이미지를 찾을 때까지 대기하는 함수
+    
+    Args:
+        task (dict): 수행할 작업 정보
+        current_mouse_pos (dict): 현재 마우스 위치 {'x': x, 'y': y}
+        max_wait_time (int): 최대 대기 시간(초), 기본값 20초
+        interval (float): 스크린샷 캡처 간격(초), 기본값 1초
+    
+    Returns:
+        tuple: (성공 여부(bool), 찾은 위치 정보(dict))
+    """
+    start_time = time.time()
+    
+    while True:
+        # 최대 대기 시간 체크
+        if time.time() - start_time > max_wait_time:
+            print(f"⏰ 제한 시간 {max_wait_time}초 초과")
+            return False, None
+        
+        try:
+            # 스크린샷 캡처
+            screenshots = capture_screenshots()
+            if not screenshots:
+                print('❌ 스크린 캡처 실패')
+                return False, None
+            
+            # 이미지 검색 수행
+            success, pos = search(task, screenshots, current_mouse_pos)
+            
+            if success:
+                print(f"✅ 이미지 '{task.get('image_path')}' 찾음")
+                return True, pos
+            
+            # 실패시 대기 후 재시도
+            print(f"🔄 이미지 검색 재시도 중... (경과 시간: {int(time.time() - start_time)}초)")
+            time.sleep(interval)
+            
+        except Exception as e:
+            print(f"❌ 검색 중 오류 발생: {e}")
+            return False, None
+        
      
 def search(task, screenshots, mouse_pos=None):
     image_paths = task.get('image_paths') or [task.get('image_path')]
     confidence = task.get('confidence', 0.98)
     capture_size = task.get('capture_size', (200, 200))
     find_mode = task.get('find_mode', 'first')  # 'first', 'top', 'bottom', 'left', 'right'
-    print(f'🔍 이미지 검색 시작: {image_paths}, 유사도 기준: {confidence}, 캡처 크기: {capture_size}, 찾기 모드: {find_mode}')
+    if debug_log == True:
+        print(f'🔍 이미지 검색 시작: {image_paths}, 유사도 기준: {confidence}, 캡처 크기: {capture_size}, 찾기 모드: {find_mode}')
 
     found_matches = []
 
     for image_path in image_paths:
         if not os.path.exists(image_path):
-            print(f'❌ 이미지 파일 없음: {image_path}')
+            if debug_log == True:
+                print(f'❌ 이미지 파일 없음: {image_path}')
             continue
 
         target_img = cv2.imread(image_path)
         if target_img is None:
-            print(f'❌ 타겟 이미지 로드 실패: {image_path}')
+            if debug_log == True:
+                print(f'❌ 타겟 이미지 로드 실패: {image_path}')
             continue
 
         target_height, target_width = target_img.shape[:2]
-        print(f'🔍 타겟 이미지: {image_path}, 크기: {target_width}x{target_height}, 유사도 기준: {confidence}')
+        if debug_log == True:
+            print(f'🔍 타겟 이미지: {image_path}, 크기: {target_width}x{target_height}, 유사도 기준: {confidence}')
 
         scales = [1.0]
         for screen in screenshots:
@@ -91,7 +144,8 @@ def search(task, screenshots, mouse_pos=None):
             offset_y = screen['offset_y']
             screen_img = screen['cv_image']
 
-            print(f'🔍 모니터 {monitor_id}에서 검색 중... (오프셋: {offset_x}, {offset_y})')
+            if debug_log == True:
+                print(f'🔍 모니터 {monitor_id}에서 검색 중... (오프셋: {offset_x}, {offset_y})')
 
             try:
                 for scale in scales:
@@ -123,10 +177,12 @@ def search(task, screenshots, mouse_pos=None):
                             'screen_img': screen_img
                         })
             except Exception as e:
-                print(f'❌ 매칭 실패 (모니터 {monitor_id}): {e}')
+                if debug_log == True:
+                    print(f'❌ 매칭 실패 (모니터 {monitor_id}): {e}')
 
     if not found_matches:
-        print(f'❌ 이미지 못 찾음: {image_paths}')
+        if debug_log == True:
+            print(f'❌ 이미지 못 찾음: {image_paths}')
         return False, None
 
     # 찾은 위치 중에서 조건에 따라 선택
@@ -173,16 +229,20 @@ def search(task, screenshots, mouse_pos=None):
             'width': capture_width,
             'height': capture_height
         }
-        print(f'   - 캡처 영역: {region}')
+        if debug_log == True:
+            print(f'   - 캡처 영역: {region}')
         screenshot = sct.grab(region)
         img = Image.frombytes('RGB', screenshot.size, screenshot.rgb)
         capture_filename = f'data/found/found_image_{monitor_id}_{timestamp}.png'
         # img.save(capture_filename)
-        print(f'📸 발견된 위치 캡처 저장: {capture_filename} (모니터 {monitor_id})')
+        if debug_log == True:
+            print(f'📸 발견된 위치 캡처 저장: {capture_filename} (모니터 {monitor_id})')
 
-    print(f'🖱 마우스 이동: {absolute_x}, {absolute_y} (모니터 {monitor_id})')
+    if debug_log == True:
+        print(f'🖱 마우스 이동: {absolute_x}, {absolute_y} (모니터 {monitor_id})')
     pyautogui.moveTo(absolute_x, absolute_y)
     mouse_pos = {'x': absolute_x, 'y': absolute_y}
-    print(f'📍 mouse_pos 업데이트: {mouse_pos}')
+    if debug_log == True:
+        print(f'📍 mouse_pos 업데이트: {mouse_pos}')
 
     return True, {'x': absolute_x, 'y': absolute_y, 'monitor_id': monitor_id, 'capture_file': capture_filename}

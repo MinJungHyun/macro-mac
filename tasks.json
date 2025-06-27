@@ -46,13 +46,10 @@
 	},
   {
 		"action": "sleep",
-		"duration": 20
+		"duration": 5
 	},
-  {
-    "action": "screenshots"
-  },
 	{
-		"action": "search",
+		"action": "waiting_capture_screenshot_search",
 		"image_path": "images/search_copy_block_gpt_app.png",
 		"confidence": 0.98,
     "find_mode": "bottom"
